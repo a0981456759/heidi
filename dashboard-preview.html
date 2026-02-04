@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Heidi Calls | Intelligent Voicemail Dashboard</title>
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'heidi-cyan': '#00D4FF',
+            'heidi-green': '#00FF88',
+            'heidi-red': '#FF0040',
+            'heidi-orange': '#FF6B00',
+          }
+        }
+      }
+    }
+  </script>
+  
+  <!-- React CDN -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body, #root { 
+      min-height: 100vh; 
+      background: #0a0a0f; 
+      font-family: 'JetBrains Mono', monospace;
+    }
+    ::-webkit-scrollbar { width: 8px; }
+    ::-webkit-scrollbar-track { background: #18181b; }
+    ::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 4px; }
+    @keyframes pulse-glow { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
+    .pulse-glow { animation: pulse-glow 2s ease-in-out infinite; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  
+  <script type="text/babel">
+    const { useState, useEffect, useMemo } = React;
+    
+    // ========== MOCK DATA ==========
+    const MOCK_VOICEMAILS = [
+      {
+        voicemail_id: "vm_20240115_001",
+        language: "English",
+        urgency: { level: 5, reasoning: "Patient reporting severe chest pain and shortness of breath" },
+        intent: "Emergency",
+        summary: "Patient experiencing chest pain and difficulty breathing for the past hour",
+        action_item: "IMMEDIATE: Contact patient and advise to call 000 or present to ED immediately",
+        is_pii_safe: true,
+        redacted_transcript: "Hi, this is [NAME REDACTED] calling. I've been having really bad chest pain for the past hour and I'm having trouble breathing. Please call me back urgently at ●●●●●●●789.",
+        caller_phone_redacted: "●●●●●●●789",
+        created_at: "2024-01-15T09:15:00Z",
+        status: "processed"
+      },
+      {
+        voicemail_id: "vm_20240115_002",
+        language: "English",
+        urgency: { level: 4, reasoning: "Patient without critical cardiac medication for 2 days" },
+        intent: "Prescription",
+        summary: "Patient needs urgent refill of blood pressure medication - has been without for 2 days",
+        action_item: "Flag for prescriber review TODAY - arrange e-script for antihypertensive",
+        is_pii_safe: true,
+        redacted_transcript: "Hello, this is [NAME REDACTED]. I've completely run out of my blood pressure tablets and my chemist says they need a new script. I normally take them twice a day.",
+        caller_phone_redacted: "●●●●●●●456",
+        created_at: "2024-01-15T10:30:00Z",
+        status: "processed"
+      },
+      {
+        voicemail_id: "vm_20240115_003",
+        language: "Mandarin Chinese",
+        urgency: { level: 2, reasoning: "Routine appointment booking with no clinical urgency" },
+        intent: "Booking",
+        summary: "Patient requesting to schedule a routine health check-up for next week",
+        action_item: "Call back to schedule appointment - Mandarin interpreter may be needed",
+        is_pii_safe: true,
+        redacted_transcript: "你好，我叫[NAME REDACTED]，我想预约下周的体检。请回电话，谢谢。电话是●●●●●●●123。",
+        caller_phone_redacted: "●●●●●●●123",
+        created_at: "2024-01-15T11:45:00Z",
+        status: "actioned"
+      },
+      {
+        voicemail_id: "vm_20240115_004",
+        language: "English",
+        urgency: { level: 3, reasoning: "Patient inquiring about non-urgent test results" },
+        intent: "Results",
+        summary: "Patient calling to follow up on blood test results from last week",
+        action_item: "Retrieve pathology results and arrange callback or appointment to discuss",
+        is_pii_safe: true,
+        redacted_transcript: "Hi there, it's [NAME REDACTED] calling about my blood test results from last week. The doctor said to call after a few days but I haven't heard anything.",
+        caller_phone_redacted: "●●●●●●●567",
+        created_at: "2024-01-15T14:20:00Z",
+        status: "pending"
+      },
+      {
+        voicemail_id: "vm_20240115_005",
+        language: "Vietnamese",
+        urgency: { level: 4, reasoning: "Post-operative patient with concerning wound symptoms" },
+        intent: "Prescription",
+        summary: "Post-surgery patient reporting redness and discharge from wound site",
+        action_item: "URGENT: Arrange same-day review for potential surgical site infection",
+        is_pii_safe: true,
+        redacted_transcript: "Xin chào, tôi là [NAME REDACTED]. Tôi vừa mổ tuần trước và vết thương bắt đầu đỏ và có mủ. Tôi lo lắng lắm.",
+        caller_phone_redacted: "●●●●●●●890",
+        created_at: "2024-01-15T15:10:00Z",
+        status: "processed"
+      },
+      {
+        voicemail_id: "vm_20240115_006",
+        language: "English",
+        urgency: { level: 1, reasoning: "General feedback with no clinical content" },
+        intent: "Other",
+        summary: "Patient calling to thank staff for excellent care during recent visit",
+        action_item: "No action required - positive feedback for records",
+        is_pii_safe: true,
+        redacted_transcript: "Hello, I just wanted to call and say thank you to everyone at the clinic. The service was wonderful!",
+        caller_phone_redacted: "●●●●●●●234",
+        created_at: "2024-01-15T16:00:00Z",
+        status: "archived"
+      },
+      {
+        voicemail_id: "vm_20240115_007",
+        language: "Greek",
+        urgency: { level: 3, reasoning: "Standard prescription renewal request" },
+        intent: "Prescription",
+        summary: "Patient requesting refill of diabetes medication - routine renewal",
+        action_item: "Process standard script renewal for metformin - Greek interpreter may be needed",
+        is_pii_safe: true,
+        redacted_transcript: "Γεια σας, είμαι ο/η [NAME REDACTED]. Χρειάζομαι ανανέωση της συνταγής για τα χάπια του διαβήτη μου.",
+        caller_phone_redacted: "●●●●●●●345",
+        created_at: "2024-01-15T16:45:00Z",
+        status: "processed"
+      },
+    ];
+    
+    // ========== UTILITIES ==========
+    const formatTime = (iso) => new Date(iso).toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit' });
+    const formatDate = (iso) => new Date(iso).toLocaleDateString('en-AU', { day: '2-digit', month: 'short' });
+    
+    const getUrgencyConfig = (level) => ({
+      5: { label: 'CRITICAL', color: '#FF0040', bg: 'rgba(255,0,64,0.15)', pulse: true },
+      4: { label: 'HIGH', color: '#FF6B00', bg: 'rgba(255,107,0,0.12)', pulse: false },
+      3: { label: 'STANDARD', color: '#00D4FF', bg: 'rgba(0,212,255,0.08)', pulse: false },
+      2: { label: 'MODERATE', color: '#00FF88', bg: 'rgba(0,255,136,0.08)', pulse: false },
+      1: { label: 'LOW', color: '#6B7280', bg: 'rgba(107,114,128,0.08)', pulse: false },
+    }[level] || { label: 'UNKNOWN', color: '#6B7280', bg: 'transparent', pulse: false });
+    
+    const getIntentIcon = (intent) => ({
+      Emergency: '🚨', Prescription: '💊', Results: '📋', Booking: '📅', Billing: '💳', Referral: '🔄', Other: '📝'
+    }[intent] || '📝');
+    
+    const getStatusConfig = (status) => ({
+      pending: { label: 'PENDING', color: '#FBBF24', icon: '○' },
+      processed: { label: 'PROCESSED', color: '#00D4FF', icon: '◐' },
+      actioned: { label: 'ACTIONED', color: '#00FF88', icon: '●' },
+      archived: { label: 'ARCHIVED', color: '#6B7280', icon: '◌' },
+    }[status] || { label: 'UNKNOWN', color: '#6B7280', icon: '?' });
+    
+    // ========== COMPONENTS ==========
+    
+    const GridBackground = () => (
+      <div className="fixed inset-0 pointer-events-none overflow-hidden">
+        <div className="absolute inset-0" style={{
+          backgroundImage: 'linear-gradient(rgba(0,212,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(0,212,255,0.03) 1px, transparent 1px)',
+          backgroundSize: '50px 50px',
+        }} />
+        <div className="absolute inset-0" style={{
+          background: 'radial-gradient(ellipse at 50% 0%, rgba(0,212,255,0.08) 0%, transparent 60%)',
+        }} />
+      </div>
+    );
+    
+    const Header = ({ stats, time }) => (
+      <header className="relative z-10 border-b border-cyan-900/30 bg-black/40 backdrop-blur-sm">
+        <div className="px-6 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
+              <span className="text-xs text-cyan-400/80 tracking-widest">LIVE</span>
+            </div>
+            <h1 className="text-2xl font-light tracking-tight">
+              <span className="text-white">HEIDI</span>
+              <span className="text-cyan-400">CALLS</span>
+            </h1>
+            <span className="text-[10px] text-zinc-600 tracking-widest">v1.0.0</span>
+          </div>
+          
+          <div className="flex items-center gap-8">
+            <div className="flex items-center gap-6 text-xs">
+              <div className="flex items-center gap-2">
+                <span className="text-zinc-500">QUEUE</span>
+                <span className="text-cyan-400 tabular-nums">{stats.pending}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-zinc-500">CRITICAL</span>
+                <span className="text-red-400 tabular-nums">{stats.critical}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-zinc-500">TODAY</span>
+                <span className="text-green-400 tabular-nums">{stats.today}</span>
+              </div>
+            </div>
+            
+            <div className="text-right">
+              <div className="text-xs text-zinc-500">{time.toLocaleDateString('en-AU', { weekday: 'short', day: '2-digit', month: 'short' })}</div>
+              <div className="text-lg text-zinc-300 tabular-nums">{time.toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</div>
+            </div>
+          </div>
+        </div>
+      </header>
+    );
+    
+    const UrgencyBar = ({ distribution }) => {
+      const total = Object.values(distribution).reduce((a, b) => a + b, 0) || 1;
+      const levels = [
+        { key: 'critical', level: 5 }, { key: 'high', level: 4 }, { key: 'standard', level: 3 },
+        { key: 'moderate', level: 2 }, { key: 'low', level: 1 },
+      ];
+      return (
+        <div className="flex h-1.5 rounded-full overflow-hidden bg-zinc-900">
+          {levels.map(({ key, level }) => {
+            const count = distribution[key] || 0;
+            const width = (count / total) * 100;
+            return width > 0 ? (
+              <div key={key} style={{ width: `${width}%`, backgroundColor: getUrgencyConfig(level).color }} className="transition-all duration-500" />
+            ) : null;
+          })}
+        </div>
+      );
+    };
+    
+    const MetricsPanel = ({ voicemails }) => {
+      const stats = useMemo(() => {
+        const intentCounts = {}, langCounts = {};
+        let criticalCount = 0, highCount = 0;
+        voicemails.forEach(vm => {
+          intentCounts[vm.intent] = (intentCounts[vm.intent] || 0) + 1;
+          langCounts[vm.language] = (langCounts[vm.language] || 0) + 1;
+          if (vm.urgency.level === 5) criticalCount++;
+          if (vm.urgency.level === 4) highCount++;
+        });
+        return { intentCounts, langCounts, criticalCount, highCount };
+      }, [voicemails]);
+      
+      return (
+        <div className="grid grid-cols-3 gap-3">
+          <div className="bg-zinc-900/50 border border-zinc-800/50 rounded-lg p-3">
+            <div className="text-[10px] text-zinc-500 tracking-widest mb-2">INTENT BREAKDOWN</div>
+            <div className="space-y-1.5">
+              {Object.entries(stats.intentCounts).slice(0, 5).map(([intent, count]) => (
+                <div key={intent} className="flex items-center justify-between">
+                  <span className="text-xs text-zinc-400">{getIntentIcon(intent)} {intent}</span>
+                  <span className="text-xs text-cyan-400">{count}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+          
+          <div className="bg-zinc-900/50 border border-zinc-800/50 rounded-lg p-3">
+            <div className="text-[10px] text-zinc-500 tracking-widest mb-2">LANGUAGES</div>
+            <div className="space-y-1.5">
+              {Object.entries(stats.langCounts).map(([lang, count]) => (
+                <div key={lang} className="flex items-center justify-between">
+                  <span className="text-xs text-zinc-400 truncate">{lang}</span>
+                  <span className="text-xs text-green-400">{count}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+          
+          <div className="bg-zinc-900/50 border border-zinc-800/50 rounded-lg p-3">
+            <div className="text-[10px] text-zinc-500 tracking-widest mb-2">PRIORITY ALERTS</div>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-red-400">CRITICAL</span>
+                <span className="text-lg text-red-400">{stats.criticalCount}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-orange-400">HIGH</span>
+                <span className="text-lg text-orange-400">{stats.highCount}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    };
+    
+    const VoicemailCard = ({ voicemail, isExpanded, onToggle, onStatusChange }) => {
+      const urgency = getUrgencyConfig(voicemail.urgency.level);
+      const status = getStatusConfig(voicemail.status);
+      
+      return (
+        <div
+          className={`relative overflow-hidden rounded-lg border transition-all duration-200
+            ${voicemail.urgency.level === 5 ? 'border-red-500/50 shadow-lg shadow-red-500/10' : 'border-zinc-800/50'}
+            ${isExpanded ? 'bg-zinc-900/80' : 'bg-zinc-900/40 hover:bg-zinc-900/60'}`}
+          style={{ borderLeftWidth: '3px', borderLeftColor: urgency.color }}
+        >
+          {urgency.pulse && <div className="absolute inset-0 pulse-glow" style={{ backgroundColor: 'rgba(255,0,64,0.03)' }} />}
+          
+          <div className="relative p-3 cursor-pointer" onClick={onToggle}>
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-center gap-3 flex-shrink-0">
+                <div className="text-center min-w-[44px]">
+                  <div className="text-xs text-zinc-500">{formatDate(voicemail.created_at)}</div>
+                  <div className="text-sm text-zinc-300">{formatTime(voicemail.created_at)}</div>
+                </div>
+                <div className="px-2 py-0.5 rounded text-[10px] font-bold tracking-wider"
+                  style={{ color: urgency.color, backgroundColor: urgency.bg, border: `1px solid ${urgency.color}40` }}>
+                  L{voicemail.urgency.level} {urgency.label}
+                </div>
+              </div>
+              
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-sm">{getIntentIcon(voicemail.intent)}</span>
+                  <span className="text-xs font-medium text-zinc-300 uppercase tracking-wide">{voicemail.intent}</span>
+                  <span className="text-[10px] text-zinc-600">•</span>
+                  <span className="text-[10px] text-zinc-500">{voicemail.language}</span>
+                  <span className="text-[10px] text-zinc-600">•</span>
+                  <span className="text-[10px] text-zinc-500">{voicemail.caller_phone_redacted}</span>
+                </div>
+                <p className="text-sm text-zinc-300 leading-snug" style={{
+                  display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden'
+                }}>{voicemail.summary}</p>
+              </div>
+              
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <span className="text-[10px] tracking-wider" style={{ color: status.color }}>{status.icon} {status.label}</span>
+                <svg className={`w-4 h-4 text-zinc-500 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+                  fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </div>
+            </div>
+          </div>
+          
+          {isExpanded && (
+            <div className="relative px-3 pb-3 pt-0 border-t border-zinc-800/50 mt-1">
+              <div className="pt-3 space-y-3">
+                <div className="bg-zinc-800/50 rounded-lg p-3">
+                  <div className="text-[10px] text-cyan-400/80 tracking-widest mb-1">RECOMMENDED ACTION</div>
+                  <p className="text-sm text-zinc-200">{voicemail.action_item}</p>
+                </div>
+                <div>
+                  <div className="text-[10px] text-zinc-500 tracking-widest mb-1">AI TRIAGE REASONING</div>
+                  <p className="text-xs text-zinc-400 italic">{voicemail.urgency.reasoning}</p>
+                </div>
+                <div>
+                  <div className="text-[10px] text-zinc-500 tracking-widest mb-1">TRANSCRIPT (REDACTED)</div>
+                  <p className="text-xs text-zinc-400 bg-black/30 p-2 rounded leading-relaxed">{voicemail.redacted_transcript}</p>
+                </div>
+                <div className="flex items-center gap-2 pt-2">
+                  <button onClick={() => onStatusChange(voicemail.voicemail_id, 'actioned')}
+                    className="px-3 py-1.5 bg-green-500/20 hover:bg-green-500/30 border border-green-500/30 rounded text-xs font-medium text-green-400 transition-colors">
+                    ✓ Mark Actioned
+                  </button>
+                  <button onClick={() => onStatusChange(voicemail.voicemail_id, 'pending')}
+                    className="px-3 py-1.5 bg-zinc-700/50 hover:bg-zinc-700 border border-zinc-600 rounded text-xs font-medium text-zinc-300 transition-colors">
+                    ← Return to Queue
+                  </button>
+                  <button className="px-3 py-1.5 bg-zinc-700/50 hover:bg-zinc-700 border border-zinc-600 rounded text-xs font-medium text-zinc-300 transition-colors">
+                    🔊 Play Audio
+                  </button>
+                  <div className="flex-1" />
+                  <span className="text-[10px] text-zinc-600">ID: {voicemail.voicemail_id}</span>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    };
+    
+    const FilterBar = ({ filters, setFilters }) => {
+      const selectClass = "bg-zinc-900 border border-zinc-700 rounded px-2 py-1.5 text-xs text-zinc-300 focus:border-cyan-500 focus:outline-none cursor-pointer";
+      return (
+        <div className="flex items-center gap-3 flex-wrap">
+          <select className={selectClass} value={filters.urgency} onChange={e => setFilters(f => ({ ...f, urgency: e.target.value }))}>
+            <option value="">All Urgency</option>
+            {[5,4,3,2,1].map(l => <option key={l} value={l}>L{l} {getUrgencyConfig(l).label}</option>)}
+          </select>
+          <select className={selectClass} value={filters.status} onChange={e => setFilters(f => ({ ...f, status: e.target.value }))}>
+            <option value="">All Status</option>
+            {['pending','processed','actioned','archived'].map(s => <option key={s} value={s}>{s.charAt(0).toUpperCase()+s.slice(1)}</option>)}
+          </select>
+          <select className={selectClass} value={filters.intent} onChange={e => setFilters(f => ({ ...f, intent: e.target.value }))}>
+            <option value="">All Intents</option>
+            {['Emergency','Prescription','Results','Booking','Other'].map(i => <option key={i} value={i}>{getIntentIcon(i)} {i}</option>)}
+          </select>
+          <div className="flex-1" />
+          <div className="relative">
+            <input type="text" placeholder="Search transcripts..."
+              className="bg-zinc-900 border border-zinc-700 rounded pl-8 pr-3 py-1.5 text-xs text-zinc-300 placeholder-zinc-600 focus:border-cyan-500 focus:outline-none w-48"
+              value={filters.search} onChange={e => setFilters(f => ({ ...f, search: e.target.value }))} />
+            <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </div>
+        </div>
+      );
+    };
+    
+    // ========== MAIN APP ==========
+    function App() {
+      const [voicemails, setVoicemails] = useState(MOCK_VOICEMAILS);
+      const [expandedId, setExpandedId] = useState(null);
+      const [filters, setFilters] = useState({ urgency: '', status: '', intent: '', search: '' });
+      const [time, setTime] = useState(new Date());
+      
+      useEffect(() => {
+        const timer = setInterval(() => setTime(new Date()), 1000);
+        return () => clearInterval(timer);
+      }, []);
+      
+      const stats = useMemo(() => ({
+        pending: voicemails.filter(v => v.status === 'pending' || v.status === 'processed').length,
+        critical: voicemails.filter(v => v.urgency.level === 5).length,
+        today: voicemails.length,
+      }), [voicemails]);
+      
+      const urgencyDist = useMemo(() => {
+        const dist = { critical: 0, high: 0, standard: 0, moderate: 0, low: 0 };
+        voicemails.forEach(v => {
+          const map = { 5: 'critical', 4: 'high', 3: 'standard', 2: 'moderate', 1: 'low' };
+          dist[map[v.urgency.level]]++;
+        });
+        return dist;
+      }, [voicemails]);
+      
+      const filtered = useMemo(() => voicemails
+        .filter(v => !filters.urgency || v.urgency.level === parseInt(filters.urgency))
+        .filter(v => !filters.status || v.status === filters.status)
+        .filter(v => !filters.intent || v.intent === filters.intent)
+        .filter(v => !filters.search || v.summary.toLowerCase().includes(filters.search.toLowerCase()) || v.redacted_transcript.toLowerCase().includes(filters.search.toLowerCase()))
+        .sort((a, b) => b.urgency.level !== a.urgency.level ? b.urgency.level - a.urgency.level : new Date(b.created_at) - new Date(a.created_at))
+      , [voicemails, filters]);
+      
+      const handleStatusChange = (id, newStatus) => {
+        setVoicemails(vms => vms.map(v => v.voicemail_id === id ? { ...v, status: newStatus } : v));
+      };
+      
+      return (
+        <div className="min-h-screen bg-[#0a0a0f] text-zinc-100">
+          <GridBackground />
+          <Header stats={stats} time={time} />
+          
+          <main className="relative z-10 p-6">
+            <div className="mb-4"><UrgencyBar distribution={urgencyDist} /></div>
+            <div className="mb-6"><MetricsPanel voicemails={voicemails} /></div>
+            <div className="mb-4 p-3 bg-zinc-900/30 border border-zinc-800/50 rounded-lg">
+              <FilterBar filters={filters} setFilters={setFilters} />
+            </div>
+            <div className="mb-3 flex items-center justify-between">
+              <span className="text-xs text-zinc-500">SHOWING {filtered.length} OF {voicemails.length} VOICEMAILS</span>
+              <span className="text-xs text-zinc-600">SORTED BY: URGENCY → TIME</span>
+            </div>
+            <div className="space-y-2">
+              {filtered.map(vm => (
+                <VoicemailCard key={vm.voicemail_id} voicemail={vm}
+                  isExpanded={expandedId === vm.voicemail_id}
+                  onToggle={() => setExpandedId(expandedId === vm.voicemail_id ? null : vm.voicemail_id)}
+                  onStatusChange={handleStatusChange} />
+              ))}
+              {filtered.length === 0 && (
+                <div className="text-center py-12 text-zinc-600">
+                  <div className="text-4xl mb-2">∅</div>
+                  <div className="text-sm">No voicemails match your filters</div>
+                </div>
+              )}
+            </div>
+          </main>
+          
+          <footer className="relative z-10 border-t border-zinc-800/50 p-4 text-center">
+            <span className="text-[10px] text-zinc-600 tracking-widest">HEIDI CALLS • INTELLIGENT VOICEMAIL TRIAGE • PRIVACY-FIRST AI</span>
+          </footer>
+        </div>
+      );
+    }
+    
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>
