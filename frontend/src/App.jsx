@@ -202,7 +202,7 @@ const getWaitingTimeWithSLA = (isoString, urgencyLevel) => {
     text: timeText,
     isBreached,
     isWarning,
-    slaText: urgencyLevel >= 4 ? `SLA: ${slaMinutes < 60 ? slaMinutes + 'm' : Math.floor(slaMinutes/60) + 'h'}` : null
+    slaText: urgencyLevel >= 4 ? `SLA: ${slaMinutes < 60 ? slaMinutes + 'm' : Math.floor(slaMinutes / 60) + 'h'}` : null
   };
 };
 
@@ -609,11 +609,10 @@ const ListenButton = ({ script }) => {
   return (
     <button
       onClick={handleListen}
-      className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors flex items-center gap-1.5 ${
-        isPlaying
+      className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors flex items-center gap-1.5 ${isPlaying
           ? 'bg-red-100 text-red-700 border border-red-200'
           : 'bg-stone-100 hover:bg-stone-200 text-stone-600 border border-stone-200'
-      }`}
+        }`}
     >
       {isPlaying ? '⏹️ Stop' : '🔊 Listen to Automated Reply'}
     </button>
@@ -699,13 +698,12 @@ const VoicemailAudioPlayer = ({ audioUrl, transcript, voicemailId, languageCode,
     <div className="flex items-center gap-2">
       <button
         onClick={handlePlay}
-        className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors flex items-center gap-1.5 ${
-          isPlaying
+        className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors flex items-center gap-1.5 ${isPlaying
             ? 'bg-blue-100 text-blue-700 border border-blue-200'
             : isAccentCase
               ? 'bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200'
               : 'bg-stone-50 hover:bg-stone-100 text-stone-600 border border-stone-200'
-        }`}
+          }`}
         title="Listen to voicemail (TTS simulation)"
       >
         {isPlaying ? (
@@ -839,11 +837,10 @@ const CallbackTrackingPanel = ({ voicemail, onCallbackRecorded }) => {
           <button
             key={option.value}
             onClick={() => setSelectedStatus(option.value)}
-            className={`px-2 py-1.5 text-[11px] rounded border transition-colors flex items-center gap-1 ${
-              selectedStatus === option.value
+            className={`px-2 py-1.5 text-[11px] rounded border transition-colors flex items-center gap-1 ${selectedStatus === option.value
                 ? 'bg-blue-600 text-white border-blue-600'
                 : 'bg-white text-stone-700 border-stone-200 hover:border-blue-300'
-            }`}
+              }`}
           >
             {option.icon} {option.label}
           </button>
@@ -1087,9 +1084,8 @@ const OfflineIndicator = ({ isOnline, pendingCount, onSync }) => {
   if (isOnline && pendingCount === 0) return null;
 
   return (
-    <div className={`fixed bottom-4 left-4 z-50 px-4 py-2 rounded-lg shadow-lg flex items-center gap-3 ${
-      isOnline ? 'bg-amber-100 text-amber-800' : 'bg-red-100 text-red-800'
-    }`}>
+    <div className={`fixed bottom-4 left-4 z-50 px-4 py-2 rounded-lg shadow-lg flex items-center gap-3 ${isOnline ? 'bg-amber-100 text-amber-800' : 'bg-red-100 text-red-800'
+      }`}>
       <div className="flex items-center gap-2">
         <span className={`inline-block w-2 h-2 rounded-full ${isOnline ? 'bg-amber-500' : 'bg-red-500 animate-pulse'}`}></span>
         <span className="text-sm font-medium">
@@ -1118,6 +1114,7 @@ const Sidebar = ({ activeFilter, setActiveFilter, stats }) => {
     { id: 'pending', label: 'Pending', count: stats.pending, icon: '⏳' },
     { id: 'actioned', label: 'Actioned', count: stats.actioned, icon: '✓' },
     { id: 'archived', label: 'Archived', count: stats.archived, icon: '📁' },
+    { id: 'video', label: 'Product Video', count: null, icon: '🎬', isSpecial: true },
   ];
 
   return (
@@ -1173,6 +1170,64 @@ const Sidebar = ({ activeFilter, setActiveFilter, stats }) => {
   );
 };
 
+// Product Video Page
+const ProductVideoPage = () => {
+  return (
+    <div className="max-w-4xl mx-auto">
+      <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
+        {/* Header */}
+        <div className="bg-gradient-to-r from-amber-500 to-orange-500 px-6 py-8 text-white">
+          <h1 className="text-2xl font-bold mb-2">Heidi Calls Product Demo</h1>
+          <p className="text-amber-100">See how Heidi Calls transforms your medical practice's voicemail management</p>
+        </div>
+
+        {/* Video Player */}
+        <div className="p-6">
+          <div className="aspect-video bg-stone-900 rounded-xl overflow-hidden shadow-inner">
+            <video
+              controls
+              className="w-full h-full"
+              poster=""
+            >
+              <source src="/heidi.mp4" type="video/mp4" />
+              Your browser does not support the video tag.
+            </video>
+          </div>
+
+          {/* Video Description */}
+          <div className="mt-6 space-y-4">
+            <h2 className="text-lg font-semibold text-stone-800">About Heidi Calls</h2>
+            <p className="text-stone-600 leading-relaxed">
+              Heidi Calls is an intelligent voicemail triage system designed specifically for healthcare clinics.
+              It automatically transcribes, categorizes, and prioritizes patient voicemails, helping your staff
+              respond to urgent cases faster while maintaining HIPAA compliance.
+            </p>
+
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
+              <div className="bg-amber-50 rounded-lg p-4 text-center">
+                <div className="text-2xl mb-1">🎯</div>
+                <div className="text-xs font-medium text-stone-700">Smart Triage</div>
+              </div>
+              <div className="bg-emerald-50 rounded-lg p-4 text-center">
+                <div className="text-2xl mb-1">🔒</div>
+                <div className="text-xs font-medium text-stone-700">PII Protection</div>
+              </div>
+              <div className="bg-blue-50 rounded-lg p-4 text-center">
+                <div className="text-2xl mb-1">🚨</div>
+                <div className="text-xs font-medium text-stone-700">Emergency Alerts</div>
+              </div>
+              <div className="bg-purple-50 rounded-lg p-4 text-center">
+                <div className="text-2xl mb-1">📊</div>
+                <div className="text-xs font-medium text-stone-700">Analytics</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // Morning Summary Card - Shows overnight stats
 const MorningSummary = ({ voicemails, onFilterClick }) => {
   const overnight = voicemails.filter(v => {
@@ -1223,9 +1278,8 @@ const MorningSummary = ({ voicemails, onFilterClick }) => {
         {/* Critical */}
         <button
           onClick={() => onFilterClick('critical')}
-          className={`p-3 rounded-lg text-center transition-colors ${
-            criticalCount > 0 ? 'bg-red-50 hover:bg-red-100' : 'bg-stone-50'
-          }`}
+          className={`p-3 rounded-lg text-center transition-colors ${criticalCount > 0 ? 'bg-red-50 hover:bg-red-100' : 'bg-stone-50'
+            }`}
         >
           <div className={`text-2xl font-bold ${criticalCount > 0 ? 'text-red-600' : 'text-stone-300'}`}>
             {criticalCount}
@@ -1238,9 +1292,8 @@ const MorningSummary = ({ voicemails, onFilterClick }) => {
         {/* Urgent */}
         <button
           onClick={() => onFilterClick('urgent')}
-          className={`p-3 rounded-lg text-center transition-colors ${
-            urgentCount > 0 ? 'bg-orange-50 hover:bg-orange-100' : 'bg-stone-50'
-          }`}
+          className={`p-3 rounded-lg text-center transition-colors ${urgentCount > 0 ? 'bg-orange-50 hover:bg-orange-100' : 'bg-stone-50'
+            }`}
         >
           <div className={`text-2xl font-bold ${urgentCount > 0 ? 'text-orange-600' : 'text-stone-300'}`}>
             {urgentCount}
@@ -1253,9 +1306,8 @@ const MorningSummary = ({ voicemails, onFilterClick }) => {
         {/* Needs Review */}
         <button
           onClick={() => onFilterClick('review')}
-          className={`p-3 rounded-lg text-center transition-colors ${
-            reviewCount > 0 ? 'bg-amber-50 hover:bg-amber-100' : 'bg-stone-50'
-          }`}
+          className={`p-3 rounded-lg text-center transition-colors ${reviewCount > 0 ? 'bg-amber-50 hover:bg-amber-100' : 'bg-stone-50'
+            }`}
         >
           <div className={`text-2xl font-bold ${reviewCount > 0 ? 'text-amber-600' : 'text-stone-300'}`}>
             {reviewCount}
@@ -1281,9 +1333,8 @@ const MorningSummary = ({ voicemails, onFilterClick }) => {
 
       {/* Oldest waiting */}
       {oldestWait && (
-        <div className={`mt-3 pt-3 border-t border-stone-100 flex items-center justify-between text-xs ${
-          oldestWait.isBreached ? 'text-red-600' : oldestWait.isWarning ? 'text-amber-600' : 'text-stone-500'
-        }`}>
+        <div className={`mt-3 pt-3 border-t border-stone-100 flex items-center justify-between text-xs ${oldestWait.isBreached ? 'text-red-600' : oldestWait.isWarning ? 'text-amber-600' : 'text-stone-500'
+          }`}>
           <span>Longest waiting:</span>
           <span className={`font-medium ${oldestWait.isBreached ? 'bg-red-100 px-2 py-0.5 rounded' : ''}`}>
             {oldestWait.text}
@@ -1521,13 +1572,12 @@ const VoicemailCard = ({ voicemail, isExpanded, onToggle, onStatusChange, onVoic
                   <span className="text-stone-300">·</span>
                   {/* Time with SLA indicator */}
                   {waitingTime ? (
-                    <span className={`text-xs px-1.5 py-0.5 rounded ${
-                      waitingTime.isBreached
+                    <span className={`text-xs px-1.5 py-0.5 rounded ${waitingTime.isBreached
                         ? 'bg-red-100 text-red-700 font-medium'
                         : waitingTime.isWarning
                           ? 'bg-amber-100 text-amber-700'
                           : 'text-stone-400'
-                    }`}>
+                      }`}>
                       ⏱ {waitingTime.text}
                       {waitingTime.isBreached && ' !'}
                     </span>
@@ -2125,35 +2175,42 @@ function HeidiCallsDashboardInner() {
         />
 
         <main className="flex-1 p-5">
-          {/* Morning Summary - Only show on "all" or "pending" filter */}
-          {!loading && !error && (activeFilter === 'all' || activeFilter === 'pending') && (
-            <MorningSummary
-              voicemails={voicemails}
-              onFilterClick={setActiveFilter}
-            />
+          {/* Product Video Page */}
+          {activeFilter === 'video' ? (
+            <ProductVideoPage />
+          ) : (
+            <>
+              {/* Morning Summary - Only show on "all" or "pending" filter */}
+              {!loading && !error && (activeFilter === 'all' || activeFilter === 'pending') && (
+                <MorningSummary
+                  voicemails={voicemails}
+                  onFilterClick={setActiveFilter}
+                />
+              )}
+
+              {/* Voicemail List - Compact spacing */}
+              <div className="space-y-2">
+                {loading && <LoadingState />}
+
+                {error && <ErrorState message={error} onRetry={() => loadVoicemails(advancedFilters)} />}
+
+                {!loading && !error && filteredVoicemails.length === 0 && (
+                  <EmptyState message="No messages match your criteria" />
+                )}
+
+                {!loading && !error && filteredVoicemails.map(vm => (
+                  <VoicemailCard
+                    key={vm.voicemail_id}
+                    voicemail={vm}
+                    isExpanded={expandedId === vm.voicemail_id}
+                    onToggle={() => setExpandedId(expandedId === vm.voicemail_id ? null : vm.voicemail_id)}
+                    onStatusChange={handleStatusChange}
+                    onVoicemailUpdate={handleVoicemailUpdate}
+                  />
+                ))}
+              </div>
+            </>
           )}
-
-          {/* Voicemail List - Compact spacing */}
-          <div className="space-y-2">
-            {loading && <LoadingState />}
-
-            {error && <ErrorState message={error} onRetry={() => loadVoicemails(advancedFilters)} />}
-
-            {!loading && !error && filteredVoicemails.length === 0 && (
-              <EmptyState message="No messages match your criteria" />
-            )}
-
-            {!loading && !error && filteredVoicemails.map(vm => (
-              <VoicemailCard
-                key={vm.voicemail_id}
-                voicemail={vm}
-                isExpanded={expandedId === vm.voicemail_id}
-                onToggle={() => setExpandedId(expandedId === vm.voicemail_id ? null : vm.voicemail_id)}
-                onStatusChange={handleStatusChange}
-                onVoicemailUpdate={handleVoicemailUpdate}
-              />
-            ))}
-          </div>
         </main>
       </div>
 
